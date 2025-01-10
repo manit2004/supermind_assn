@@ -75,12 +75,14 @@ The SQL database (tweets.db) contains a single table nasa_tweets with the follow
   - "Which post type performs better: images or videos?"
 
 ## Project Structure
-├── app.py                 # Main Streamlit application 
-├── prompt.txt             # System prompt for LangChain 
-├── tweets.db              # SQLite database containing NASA's tweets 
-├── requirements.txt       # Python dependencies 
-├── .env                   # Environment variables 
-└── README.md              # Project documentation
+```
+├── app.py             # Main Streamlit application
+├── prompt.txt         # System prompt for LangChain
+├── tweets.db          # SQLite database containing NASA's tweets
+├── requirements.txt   # Python dependencies
+├── .env               # Environment variables
+└── README.md          # Project documentation
+```
 
 ## Acknowledgments
 - [LangChain](https://github.com/langchain-ai/langchain) for the conversational AI framework.
