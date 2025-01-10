@@ -3,6 +3,11 @@
 ## Overview
 This *Social Media Manager* is a conversational Streamlit application designed to analyze and derive insights from NASA's Twitter engagement data. Powered by LangChain, OpenAI's GPT-4, and a SQL database, it enables users to interactively query and explore tweets, calculate engagement metrics, and generate comparative insights across different post types (text, image, video, gif).
 
+## Try It Out
+
+You can try out the Social Media Manager application live at the following hosted website:
+[Live Demo](https://mtrsupermind.streamlit.app/)
+
 ## Features
 - *Chat-Based Interaction*: A user-friendly interface to query the database using natural language.
 - *SQL Database Integration*: Access and analyze NASA's tweets stored in an SQLite database.
