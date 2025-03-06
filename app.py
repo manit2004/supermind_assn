@@ -8,24 +8,30 @@ from langchain_core.prompts import (
     ChatPromptTemplate,
     MessagesPlaceholder,
 )
+from langsmith import Client
 import os
 from dotenv import load_dotenv
 load_dotenv()
 
+# Load the API keys from the .env file
 openai_key=os.getenv("OPENAI_API_KEY")
+LANGSMITH_API_KEY = os.getenv("LANGSMITH_API_KEY")
+
+#Initiate the Model and Database
 llm = ChatOpenAI(model="gpt-4o", temperature=0, api_key=openai_key)
 db = SQLDatabase.from_uri("sqlite:///tweets.db")
 
-with open("prompt.txt", 'r') as file:
-        system_prefix = file.read()
-
+#Load the system prompt
+client = Client(api_key=LANGSMITH_API_KEY)
+system_prefix = client.pull_prompt("varnan_int")
 full_prompt = ChatPromptTemplate.from_messages(
     [
-        ("system",system_prefix),
+        ("system",system_prefix.messages[0].prompt.template),
         ("human", "{input}"),
         MessagesPlaceholder("agent_scratchpad"),
     ]
 )
+#Initiate the agent
 agent = create_sql_agent(
     llm=llm,
     db=db,
@@ -33,7 +39,7 @@ agent = create_sql_agent(
     agent_type="openai-tools",
     verbose = True
 )
-
+#Setup Chat History
 if 'memory' not in st.session_state:
     st.session_state['memory'] = ChatMessageHistory(session_id="test-session")
 if 'config' not in st.session_state:
@@ -52,9 +58,7 @@ st.set_page_config(
     layout="wide"
 )
 
-
 st.title("Social Media Manager")
-
 
 # check for messages in session and create if not exists
 if "messages" not in st.session_state.keys():
