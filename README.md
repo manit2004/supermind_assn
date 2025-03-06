@@ -82,7 +82,6 @@ The SQL database (tweets.db) contains a single table nasa_tweets with the follow
 ## Project Structure
 ```
 ├── app.py             # Main Streamlit application
-├── prompt.txt         # System prompt for LangChain
 ├── tweets.db          # SQLite database containing NASA's tweets
 ├── requirements.txt   # Python dependencies
 ├── .env               # Environment variables
