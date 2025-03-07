@@ -2,3 +2,5 @@ langchain_community
 langchain_core
 langchain_openai
 langsmith
+pandasai
+pandas
