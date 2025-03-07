@@ -1,38 +1,91 @@
 import streamlit as st
-import pandas as pd
-from pandasai import SmartDataframe
-from pandasai.llm import OpenAI
-from dotenv import load_dotenv
+from langchain_community.utilities import SQLDatabase
+from langchain_openai import ChatOpenAI
+from langchain_community.chat_message_histories import ChatMessageHistory
+from langchain_core.runnables.history import RunnableWithMessageHistory
+from langchain_community.agent_toolkits import create_sql_agent
+from langchain_core.prompts import (
+    ChatPromptTemplate,
+    MessagesPlaceholder,
+)
+from langsmith import Client
 import os
+from dotenv import load_dotenv
 load_dotenv()
 
-# Initialize the LLM model
+# Load the API keys from the .env file
 openai_key=os.getenv("OPENAI_API_KEY")
-llm=OpenAI(api_token=openai_key)
+LANGSMITH_API_KEY = os.getenv("LANGSMITH_API_KEY")
 
-def main():
-    st.title("Chat with CSV")
-    messages = []
+#Initiate the Model and Database
+llm = ChatOpenAI(model="gpt-4o", temperature=0, api_key=openai_key)
+db = SQLDatabase.from_uri("sqlite:///tweets.db")
 
-    # File upload section
-    uploaded_file = st.file_uploader("Choose a file to upload", type=["csv"]) 
-    if uploaded_file is not None:
-        # convert the data to a pandas smart DataFrame
-        df = pd.read_csv(uploaded_file)
-        chat_df = SmartDataframe(df,config={"llm": llm})
+#Load the system prompt
+client = Client(api_key=LANGSMITH_API_KEY)
+system_prefix = client.pull_prompt("varnan_int")
+full_prompt = ChatPromptTemplate.from_messages(
+    [
+        ("system",system_prefix.messages[0].prompt.template),
+        ("human", "{input}"),
+        MessagesPlaceholder("agent_scratchpad"),
+    ]
+)
+#Initiate the agent
+agent = create_sql_agent(
+    llm=llm,
+    db=db,
+    prompt=full_prompt,
+    agent_type="openai-tools",
+    verbose = True
+)
+#Setup Chat History
+if 'memory' not in st.session_state:
+    st.session_state['memory'] = ChatMessageHistory(session_id="test-session")
+if 'config' not in st.session_state:
+    st.session_state['config'] = {"configurable": {"session_id": "test-session"}}
 
-    user_input = st.chat_input(placeholder="Enter your message") 
-    if user_input:
-        messages.append({"role": "user", "content": user_input})
-        response = chat_df.chat(user_input)  
-        messages.append({"role": "assistant", "content": str(response)})
+agent_with_chat_history = RunnableWithMessageHistory(
+    agent,
+    lambda session_id: st.session_state['memory'],
+    input_messages_key="input",
+    history_messages_key="chat_history",
+)
 
-    # Display chat messages
-    for message in messages:
-        if message["role"] == "user":
-            st.write(message["content"])
-        else:
-            st.write(message["content"])  # Add an avatar if desired
-    
-if __name__ == "__main__":
-    main()
+st.set_page_config(
+    page_title="Social Media Manager",
+    page_icon="🤖",
+    layout="wide"
+)
+
+st.title("Social Media Manager")
+
+# check for messages in session and create if not exists
+if "messages" not in st.session_state.keys():
+    st.session_state.messages = [
+        {"role": "assistant", "content": "I am your social media manager who handles your twitter."}
+    ]
+
+
+# Display all messages
+for message in st.session_state.messages:
+    with st.chat_message(message["role"]):
+        st.write(message["content"])
+
+
+user_prompt = st.chat_input()
+
+if user_prompt is not None:
+    st.session_state.messages.append({"role": "user", "content": user_prompt})
+    with st.chat_message("user"):
+        st.write(user_prompt)
+
+
+if st.session_state.messages[-1]["role"] != "assistant":
+    with st.chat_message("assistant"):
+        with st.spinner("Loading..."):
+            ai_response = agent_with_chat_history.invoke({"input": user_prompt},st.session_state['config'])["output"]
+            print(ai_response)
+            st.write(ai_response)
+    new_ai_message = {"role": "assistant", "content": ai_response}
+    st.session_state.messages.append(new_ai_message)
